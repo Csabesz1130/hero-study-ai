@@ -1,15 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Analytics } from "@/types";
+import { api } from "@/lib/api";
+import { toast } from "react-hot-toast";
+import { LearningTimeChart } from "@/components/analytics/LearningTimeChart";
+import { CompletionRateChart } from "@/components/analytics/CompletionRateChart";
 
 export default function AnalyticsPage() {
     const router = useRouter();
     const [analytics, setAnalytics] = useState<Analytics[]>([]);
+    const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<"week" | "month" | "year">("week");
+
+    useEffect(() => {
+        loadAnalytics();
+    }, [timeRange]);
+
+    const loadAnalytics = async () => {
+        try {
+            // TODO: Get actual user ID from auth context
+            const userId = "temp-user-id";
+            const data = await api.analytics.getByTimeRange(userId, timeRange);
+            setAnalytics(data);
+        } catch (error) {
+            toast.error("Hiba történt az analitikai adatok betöltése közben");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center">
+                <div className="text-white">Betöltés...</div>
+            </div>
+        );
+    }
+
+    // Calculate statistics
+    const totalLearningTime = analytics.reduce((acc, curr) => acc + curr.learningTime, 0);
+    const averageCompletionRate = analytics.length > 0
+        ? analytics.reduce((acc, curr) => acc + curr.completionRate, 0) / analytics.length
+        : 0;
+    const averageScore = analytics.length > 0
+        ? analytics.reduce((acc, curr) => acc + curr.averageScore, 0) / analytics.length
+        : 0;
+    const lastActivity = analytics.length > 0
+        ? new Date(analytics[0].lastActivity).toLocaleDateString("hu-HU")
+        : "-";
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
@@ -54,7 +96,9 @@ export default function AnalyticsPage() {
                             <CardDescription>Az elmúlt {timeRange}ben</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-bold text-primary-500">0 óra</p>
+                            <p className="text-3xl font-bold text-primary-500">
+                                {Math.round(totalLearningTime / 60)} óra
+                            </p>
                         </CardContent>
                     </Card>
 
@@ -64,7 +108,9 @@ export default function AnalyticsPage() {
                             <CardDescription>Az elmúlt {timeRange}ben</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-bold text-primary-500">0%</p>
+                            <p className="text-3xl font-bold text-primary-500">
+                                {Math.round(averageCompletionRate)}%
+                            </p>
                         </CardContent>
                     </Card>
 
@@ -74,17 +120,21 @@ export default function AnalyticsPage() {
                             <CardDescription>Az elmúlt {timeRange}ben</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-bold text-primary-500">0</p>
+                            <p className="text-3xl font-bold text-primary-500">
+                                {Math.round(averageScore)}
+                            </p>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Utolsó Aktivítás</CardDescription>
+                            <CardTitle>Utolsó Aktivítás</CardTitle>
                             <CardDescription>Az elmúlt {timeRange}ben</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-bold text-primary-500">-</p>
+                            <p className="text-3xl font-bold text-primary-500">
+                                {lastActivity}
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -98,9 +148,7 @@ export default function AnalyticsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-64 flex items-center justify-center text-gray-400">
-                                Grafikon helye
-                            </div>
+                            <LearningTimeChart data={analytics} />
                         </CardContent>
                     </Card>
 
@@ -112,9 +160,7 @@ export default function AnalyticsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-64 flex items-center justify-center text-gray-400">
-                                Grafikon helye
-                            </div>
+                            <CompletionRateChart data={analytics} />
                         </CardContent>
                     </Card>
                 </div>
