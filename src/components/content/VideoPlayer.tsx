@@ -1,77 +1,91 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { VideoContent, ContentProgress } from "@/types/content";
 import { api } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 interface VideoPlayerProps {
-    videoUrl: string;
-    title: string;
-    objectiveId: string;
-    userId: string;
+    content: VideoContent;
+    onProgressUpdate: (progress: ContentProgress) => void;
 }
 
-export function VideoPlayer({ videoUrl, title, objectiveId, userId }: VideoPlayerProps) {
+export function VideoPlayer({ content, onProgressUpdate }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [engagement, setEngagement] = useState(0);
-    const lastUpdateTime = useRef(Date.now());
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [engagementPoints, setEngagementPoints] = useState<number[]>([]);
+    const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
     useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
+        // Engagement pontok betöltése
+        const points = content.engagementPoints.map(point => point.timestamp);
+        setEngagementPoints(points);
 
-        const handlePlay = () => setIsPlaying(true);
-        const handlePause = () => setIsPlaying(false);
-        const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-        const handleLoadedMetadata = () => setDuration(video.duration);
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                updateEngagement();
-            }
-        };
-
-        video.addEventListener("play", handlePlay);
-        video.addEventListener("pause", handlePause);
-        video.addEventListener("timeupdate", handleTimeUpdate);
-        video.addEventListener("loadedmetadata", handleLoadedMetadata);
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-
-        return () => {
-            video.removeEventListener("play", handlePlay);
-            video.removeEventListener("pause", handlePause);
-            video.removeEventListener("timeupdate", handleTimeUpdate);
-            video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-        };
-    }, []);
-
-    const updateEngagement = async () => {
-        const now = Date.now();
-        const timeDiff = now - lastUpdateTime.current;
-        const watchTime = Math.min(timeDiff / 1000, 30); // Maximum 30 másodperc per frissítés
-
-        if (watchTime > 0) {
-            try {
-                await api.progress.update({
-                    userId,
-                    objectiveId,
-                    watchTime,
-                    engagement: calculateEngagement(),
+        // Progress mentése 30 másodpercenként
+        const interval = setInterval(() => {
+            if (videoRef.current && isPlaying) {
+                const currentProgress = (videoRef.current.currentTime / content.duration) * 100;
+                setProgress(currentProgress);
+                onProgressUpdate({
+                    contentId: content.id,
+                    type: "video",
+                    progress: currentProgress,
+                    completed: currentProgress >= 100,
+                    lastAccessed: new Date(),
+                    engagement: {
+                        watchTime: Math.floor(videoRef.current.currentTime),
+                    },
                 });
-                lastUpdateTime.current = now;
-            } catch (error) {
-                console.error("Hiba történt az engagement frissítése közben:", error);
+            }
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [content, isPlaying, onProgressUpdate]);
+
+    const handlePlayPause = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            const currentTime = videoRef.current.currentTime;
+            setCurrentTime(currentTime);
+
+            // Engagement pontok ellenőrzése
+            const currentPoint = content.engagementPoints.find(
+                point => Math.abs(point.timestamp - currentTime) < 1
+            );
+
+            if (currentPoint) {
+                toast(currentPoint.content, {
+                    duration: 5000,
+                    position: "top-center",
+                });
             }
         }
     };
 
-    const calculateEngagement = () => {
-        if (duration === 0) return 0;
-        const progress = (currentTime / duration) * 100;
-        const engagementScore = Math.min(progress + (isPlaying ? 10 : 0), 100);
-        return Math.round(engagementScore);
+    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (videoRef.current) {
+            const time = parseFloat(e.target.value);
+            videoRef.current.currentTime = time;
+            setCurrentTime(time);
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
     };
 
     return (
@@ -79,22 +93,39 @@ export function VideoPlayer({ videoUrl, title, objectiveId, userId }: VideoPlaye
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                     ref={videoRef}
-                    src={videoUrl}
-                    title={title}
+                    src={content.url}
                     className="w-full h-full"
-                    controls
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={() => setIsPlaying(false)}
                 />
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
-                    <div
-                        className="h-full bg-primary-500 transition-all duration-300"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
-                    />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                    <div className="flex items-center space-x-4">
+                        <button
+                            onClick={handlePlayPause}
+                            className="text-white hover:text-gray-300"
+                        >
+                            {isPlaying ? "⏸️" : "▶️"}
+                        </button>
+                        <input
+                            type="range"
+                            min="0"
+                            max={content.duration}
+                            value={currentTime}
+                            onChange={handleSeek}
+                            className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <span className="text-white text-sm">
+                            {formatTime(currentTime)} / {formatTime(content.duration)}
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
-                <span>{title}</span>
-                <span>Engagement: {engagement}%</span>
-            </div>
+            {content.description && (
+                <div className="mt-4 p-4 bg-gray-800 rounded-lg">
+                    <p className="text-gray-300">{content.description}</p>
+                </div>
+            )}
         </div>
     );
+} 
 } 
