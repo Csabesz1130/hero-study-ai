@@ -56,4 +56,8 @@ export interface Analytics {
     completionRate: number; // percentage
     averageScore: number;
     lastActivity: Date;
-} 
+}
+
+export * from './content';
+export * from './quiz';
+export * from './learning'; 
