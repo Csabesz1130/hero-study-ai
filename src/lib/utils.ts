@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Message, UserPreferences } from '@/types/learning';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -38,4 +39,49 @@ export function debounce<T extends (...args: any[]) => any>(
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+export function analyzeMessageHistory(messages: Message[]): Partial<UserPreferences> {
+    const analysis: Partial<UserPreferences> = {
+        communicationStyle: "formal",
+        learningSpeed: "medium"
+    };
+
+    if (messages.length === 0) {
+        return analysis;
+    }
+
+    const formalKeywords = ['köszönöm', 'kérem', 'tisztelettel', 'szeretném'];
+    const casualKeywords = ['sziasztok', 'helló', 'oké', 'rendben'];
+
+    let formalCount = 0;
+    let casualCount = 0;
+
+    messages.forEach(message => {
+        const text = message.content.toLowerCase();
+        formalKeywords.forEach(keyword => {
+            if (text.includes(keyword)) formalCount++;
+        });
+        casualKeywords.forEach(keyword => {
+            if (text.includes(keyword)) casualCount++;
+        });
+    });
+
+    if (formalCount > casualCount * 2) {
+        analysis.communicationStyle = "formal";
+    } else if (casualCount > formalCount * 2) {
+        analysis.communicationStyle = "casual";
+    }
+
+    const messageCount = messages.length;
+    const timeSpan = messages[messages.length - 1].timestamp.getTime() - messages[0].timestamp.getTime();
+    const messagesPerHour = messageCount / (timeSpan / (1000 * 60 * 60));
+
+    if (messagesPerHour < 5) {
+        analysis.learningSpeed = "slow";
+    } else if (messagesPerHour > 15) {
+        analysis.learningSpeed = "fast";
+    }
+
+    return analysis;
 } 
