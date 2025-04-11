@@ -1,0 +1,177 @@
+.ai-assistant-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+}
+
+.ai-header h2 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.ai-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.ai-actions button {
+    padding: 8px 16px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.ai-actions button:hover:not(:disabled) {
+    background-color: #1976d2;
+}
+
+.ai-actions button:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.chat-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 6px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message.user {
+    background-color: #e3f2fd;
+    margin-left: auto;
+}
+
+.message.assistant {
+    background-color: #f5f5f5;
+    margin-right: auto;
+}
+
+.message.loading {
+    background-color: #f5f5f5;
+    color: #666;
+    font-style: italic;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.input-container {
+    display: flex;
+    gap: 10px;
+}
+
+.input-container input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.input-container button {
+    padding: 10px 20px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.input-container button:hover:not(:disabled) {
+    background-color: #1976d2;
+}
+
+.input-container button:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.suggestions-container,
+.analysis-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.suggestions-container h3,
+.analysis-container h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.suggestions-container ul,
+.analysis-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.suggestions-container li,
+.analysis-container li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.suggestions-container li:last-child,
+.analysis-container li:last-child {
+    border-bottom: none;
+}
+
+.analysis-section {
+    margin-top: 15px;
+}
+
+.analysis-section h4 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .ai-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .ai-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+} 
