@@ -12,7 +12,13 @@
     "test:coverage": "jest --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:migrate": "ts-node src/db/migrate.ts",
+    "db:migrate:down": "ts-node src/db/migrate.ts down",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:push": "drizzle-kit push:pg",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "ts-node src/db/seed.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
