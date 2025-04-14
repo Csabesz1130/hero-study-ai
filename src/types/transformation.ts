@@ -80,4 +80,95 @@ export interface AhaMomentConfig {
     soundEffect: string;
     visualEffect: VisualEffect;
     timing: number;
+}
+
+export interface TransformationContent {
+    id: string;
+    title: string;
+    description: string;
+    type: 'knowledge' | 'misconception' | 'problem' | 'comparison';
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    timeEstimate: number;
+    transformations: Transformation[];
+    comparisons: Comparison[];
+    visualizations: Visualization[];
+    revealTiming: RevealTiming;
+}
+
+export interface Transformation {
+    id: string;
+    type: 'knowledge' | 'misconception' | 'problem';
+    beforeState: State;
+    afterState: State;
+    steps: TransformationStep[];
+    revealStrategy: RevealStrategy;
+}
+
+export interface State {
+    description: string;
+    visualization: Visualization;
+    emotions: Emotion[];
+    confidence: number;
+    misconceptions?: string[];
+}
+
+export interface Comparison {
+    id: string;
+    title: string;
+    before: ComparisonItem;
+    after: ComparisonItem;
+    differences: Difference[];
+    insights: string[];
+}
+
+export interface ComparisonItem {
+    title: string;
+    description: string;
+    visualization: Visualization;
+    characteristics: string[];
+}
+
+export interface Difference {
+    aspect: string;
+    before: string;
+    after: string;
+    significance: string;
+}
+
+export interface Visualization {
+    type: 'image' | 'animation' | '3d' | 'interactive';
+    content: string;
+    style: string;
+    timing: number;
+}
+
+export interface Emotion {
+    type: 'confusion' | 'frustration' | 'realization' | 'satisfaction';
+    intensity: number;
+    description: string;
+}
+
+export interface Interaction {
+    type: 'click' | 'drag' | 'hover' | 'input';
+    target: string;
+    feedback: string;
+}
+
+export interface RevealStrategy {
+    type: 'progressive' | 'dramatic' | 'interactive';
+    timing: number;
+    triggers: RevealTrigger[];
+}
+
+export interface RevealTrigger {
+    type: 'time' | 'interaction' | 'scroll' | 'completion';
+    threshold: number;
+    action: string;
+}
+
+export interface RevealTiming {
+    initialDelay: number;
+    stepDelay: number;
+    finalDelay: number;
+    transitionDuration: number;
 } 

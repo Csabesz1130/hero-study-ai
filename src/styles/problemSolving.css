@@ -1,0 +1,229 @@
+.problem-solving-view {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background: #1a1a1a;
+    color: #fff;
+    min-height: 100vh;
+}
+
+/* Nézőpont vezérlők */
+.viewpoint-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.viewpoint-controls button {
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.viewpoint-controls button.active {
+    background: #4CAF50;
+}
+
+/* Gondolatfolyamat */
+.thought-process {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.thought-step {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.thought-content {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.thought-confidence {
+    font-size: 14px;
+    color: #888;
+}
+
+/* Lépés navigáció */
+.step-navigation {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.step-navigation button {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.step-navigation button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+/* Aktuális lépés */
+.step-container {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.micro-goal {
+    color: #4CAF50;
+    font-style: italic;
+    margin: 10px 0;
+}
+
+.success-criteria {
+    margin-top: 15px;
+}
+
+.criterion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 5px 0;
+}
+
+/* Döntési pont */
+.decision-point {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.option-button {
+    background: #333;
+    border: none;
+    border-radius: 5px;
+    padding: 15px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+    text-align: left;
+}
+
+.option-button:hover {
+    background: #444;
+}
+
+.pros-cons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.pros,
+.cons {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+/* Akadály */
+.obstacle {
+    background: rgba(255, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.preparation,
+.solution {
+    margin-top: 15px;
+}
+
+/* Segítség rendszer */
+.hint-system {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.hint-content {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+/* Erőforrások */
+.resources {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.resource-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.resource-button {
+    padding: 8px 15px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.resource-button:hover {
+    background: #444;
+}
+
+/* Reszponzív design */
+@media (max-width: 768px) {
+    .problem-solving-view {
+        padding: 10px;
+    }
+
+    .viewpoint-controls {
+        flex-direction: column;
+    }
+
+    .options {
+        grid-template-columns: 1fr;
+    }
+
+    .pros-cons {
+        grid-template-columns: 1fr;
+    }
+
+    .step-navigation {
+        flex-direction: column;
+    }
+
+    .step-navigation button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,163 @@
+.color-system-demo {
+    padding: 2rem;
+    background: var(--neutral-50);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+}
+
+.controls select,
+.controls label {
+    padding: 0.5rem;
+    border: 1px solid var(--neutral-200);
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.color-scale {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.color-swatch {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.02);
+}
+
+.color-label {
+    font-weight: 500;
+    color: var(--neutral-900);
+}
+
+.color-value {
+    font-family: monospace;
+    color: var(--neutral-700);
+}
+
+.palette-info {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.palette-info h3 {
+    color: var(--neutral-900);
+    margin-bottom: 1rem;
+}
+
+.palette-info p {
+    color: var(--neutral-700);
+    margin-bottom: 1.5rem;
+}
+
+.usage-examples h4,
+.component-examples h4 {
+    color: var(--neutral-800);
+    margin-bottom: 0.5rem;
+}
+
+.usage-examples ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.usage-examples li {
+    color: var(--neutral-700);
+    margin-bottom: 0.5rem;
+}
+
+.example {
+    margin-bottom: 1rem;
+}
+
+.example h5 {
+    color: var(--neutral-800);
+    margin-bottom: 0.5rem;
+}
+
+.example-colors {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.example-color {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 4px;
+    border: 1px solid var(--neutral-200);
+}
+
+/* Sötét mód támogatás */
+@media (prefers-color-scheme: dark) {
+    .color-system-demo {
+        background: var(--neutral-900);
+    }
+
+    .controls select,
+    .controls label {
+        background: var(--neutral-800);
+        color: var(--neutral-100);
+        border-color: var(--neutral-700);
+    }
+
+    .palette-info {
+        background: var(--neutral-800);
+    }
+
+    .color-label,
+    .palette-info h3 {
+        color: var(--neutral-100);
+    }
+
+    .color-value,
+    .palette-info p,
+    .usage-examples li {
+        color: var(--neutral-300);
+    }
+
+    .usage-examples h4,
+    .component-examples h4,
+    .example h5 {
+        color: var(--neutral-200);
+    }
+}
+
+/* Reszponzív design */
+@media (max-width: 768px) {
+    .color-system-demo {
+        padding: 1rem;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .color-scale {
+        margin-bottom: 1rem;
+    }
+
+    .palette-info {
+        padding: 1rem;
+    }
+}
