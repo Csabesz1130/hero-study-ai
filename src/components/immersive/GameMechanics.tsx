@@ -16,10 +16,14 @@ export const GameMechanicsProvider: React.FC<{ children: React.ReactNode }> = ({
     const [mechanics, setMechanics] = useState<GameMechanics>({
         objectives: [],
         scoring: {
-            pointsPerObjective: 10,
+            basePoints: 10,
             timeBonus: 5,
-            skillBonus: 3
-        }
+            skillBonus: 3,
+            completionBonus: 2
+        },
+        difficulty: 'easy',
+        allowedSkills: [],
+        availableItems: []
     });
 
     const [progress, setProgress] = useState<UserProgress[]>([]);
@@ -34,7 +38,13 @@ export const GameMechanicsProvider: React.FC<{ children: React.ReactNode }> = ({
                         : p
                 );
             }
-            return [...prev, { sceneId, ...newProgress } as UserProgress];
+            return [...prev, {
+                sceneId,
+                ...newProgress,
+                timeSpent: 0,
+                score: 0,
+                completedObjectives: []
+            } as UserProgress];
         });
     }, []);
 
@@ -47,7 +57,7 @@ export const GameMechanicsProvider: React.FC<{ children: React.ReactNode }> = ({
                         ? {
                             ...p,
                             completedObjectives: [...p.completedObjectives, objectiveId],
-                            score: p.score + (mechanics.scoring.pointsPerObjective || 0)
+                            score: p.score + mechanics.scoring.basePoints
                         }
                         : p
                 );
@@ -55,10 +65,11 @@ export const GameMechanicsProvider: React.FC<{ children: React.ReactNode }> = ({
             return [...prev, {
                 sceneId,
                 completedObjectives: [objectiveId],
-                score: mechanics.scoring.pointsPerObjective || 0
+                score: mechanics.scoring.basePoints,
+                timeSpent: 0
             }];
         });
-    }, [mechanics.scoring.pointsPerObjective]);
+    }, [mechanics.scoring.basePoints]);
 
     const addScore = useCallback((sceneId: string, points: number) => {
         setProgress(prev => {
@@ -70,7 +81,12 @@ export const GameMechanicsProvider: React.FC<{ children: React.ReactNode }> = ({
                         : p
                 );
             }
-            return [...prev, { sceneId, score: points, completedObjectives: [] }];
+            return [...prev, {
+                sceneId,
+                score: points,
+                completedObjectives: [],
+                timeSpent: 0
+            }];
         });
     }, []);
 
