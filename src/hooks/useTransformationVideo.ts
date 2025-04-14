@@ -1,54 +1,86 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransformationSequence, TransformationStep, AhaMomentConfig } from '../types/transformation';
 
 export const useTransformationVideo = (sequence: TransformationSequence) => {
     const [currentStep, setCurrentStep] = useState<number>(0);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [progress, setProgress] = useState<number>(0);
+    const [error, setError] = useState<Error | null>(null);
     const timerRef = useRef<NodeJS.Timeout>();
     const audioRef = useRef<HTMLAudioElement>();
+    const isMounted = useRef<boolean>(true);
 
     useEffect(() => {
+        isMounted.current = true;
         return () => {
+            isMounted.current = false;
             if (timerRef.current) clearTimeout(timerRef.current);
-            if (audioRef.current) audioRef.current.pause();
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = undefined;
+            }
         };
     }, []);
 
-    const playStep = (step: TransformationStep) => {
-        // Hanghatások lejátszása
-        step.audioCues.forEach(cue => {
-            const audio = new Audio(cue.file);
-            audio.volume = cue.volume;
-            setTimeout(() => audio.play(), cue.timing);
-        });
+    const playStep = useCallback((step: TransformationStep) => {
+        try {
+            // Hanghatások lejátszása
+            step.audioCues.forEach(cue => {
+                const audio = new Audio(cue.file);
+                audio.volume = cue.volume;
+                audioRef.current = audio;
 
-        // Vizuális effektek alkalmazása
-        step.visualElements.forEach(element => {
-            element.effects.forEach(effect => {
+                audio.addEventListener('error', (e) => {
+                    console.error('Hangfájl betöltési hiba:', e);
+                });
+
                 setTimeout(() => {
-                    // Effekt alkalmazása a megfelelő elemre
-                    applyVisualEffect(element, effect);
-                }, effect.timing);
+                    if (isMounted.current) {
+                        audio.play().catch(err => {
+                            console.error('Hang lejátszási hiba:', err);
+                        });
+                    }
+                }, cue.timing);
             });
-        });
-    };
 
-    const applyVisualEffect = (element: any, effect: any) => {
-        // Vizuális effekt implementációja
-        console.log(`Applying ${effect.type} to element ${element.id}`);
-    };
+            // Vizuális effektek alkalmazása
+            step.visualElements.forEach(element => {
+                element.effects.forEach(effect => {
+                    setTimeout(() => {
+                        if (isMounted.current) {
+                            applyVisualEffect(element, effect);
+                        }
+                    }, effect.timing);
+                });
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err : new Error('Ismeretlen hiba történt'));
+        }
+    }, []);
 
-    const playSequence = () => {
+    const applyVisualEffect = useCallback((element: any, effect: any) => {
+        try {
+            // Vizuális effekt implementációja
+            console.log(`Applying ${effect.type} to element ${element.id}`);
+        } catch (err) {
+            console.error('Vizuális effekt alkalmazási hiba:', err);
+        }
+    }, []);
+
+    const playSequence = useCallback(() => {
+        if (!isMounted.current) return;
+
         setIsPlaying(true);
+        setError(null);
         let currentTime = 0;
 
         sequence.steps.forEach((step, index) => {
             setTimeout(() => {
+                if (!isMounted.current) return;
+
                 setCurrentStep(index);
                 playStep(step);
 
-                // Progress frissítése
                 const stepProgress = (index + 1) / sequence.steps.length;
                 setProgress(stepProgress);
             }, currentTime);
@@ -57,45 +89,51 @@ export const useTransformationVideo = (sequence: TransformationSequence) => {
         });
 
         setTimeout(() => {
-            setIsPlaying(false);
-            setCurrentStep(0);
-            setProgress(0);
+            if (isMounted.current) {
+                setIsPlaying(false);
+                setCurrentStep(0);
+                setProgress(0);
+            }
         }, currentTime);
-    };
+    }, [sequence.steps, playStep]);
 
-    const pauseSequence = () => {
+    const pauseSequence = useCallback(() => {
         setIsPlaying(false);
         if (timerRef.current) clearTimeout(timerRef.current);
-        if (audioRef.current) audioRef.current.pause();
-    };
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = undefined;
+        }
+    }, []);
 
-    const optimizeAhaMoment = (config: AhaMomentConfig) => {
-        // Aha-moment optimalizálása
-        const { buildUpDuration, revealDuration, impactDuration } = config;
+    const optimizeAhaMoment = useCallback((config: AhaMomentConfig) => {
+        try {
+            const { buildUpDuration, revealDuration, impactDuration } = config;
 
-        // Fokozatos felépítés
-        setTimeout(() => {
-            // Felépítés effektek
-            console.log('Building up to aha moment...');
-        }, buildUpDuration);
+            setTimeout(() => {
+                if (!isMounted.current) return;
+                console.log('Building up to aha moment...');
+            }, buildUpDuration);
 
-        // Felfedés
-        setTimeout(() => {
-            // Felfedés effektek
-            console.log('Revealing the insight...');
-        }, buildUpDuration + revealDuration);
+            setTimeout(() => {
+                if (!isMounted.current) return;
+                console.log('Revealing the insight...');
+            }, buildUpDuration + revealDuration);
 
-        // Hatás
-        setTimeout(() => {
-            // Hatás effektek
-            console.log('Impact moment...');
-        }, buildUpDuration + revealDuration + impactDuration);
-    };
+            setTimeout(() => {
+                if (!isMounted.current) return;
+                console.log('Impact moment...');
+            }, buildUpDuration + revealDuration + impactDuration);
+        } catch (err) {
+            setError(err instanceof Error ? err : new Error('Aha-moment optimalizálási hiba'));
+        }
+    }, []);
 
     return {
         currentStep,
         isPlaying,
         progress,
+        error,
         playSequence,
         pauseSequence,
         optimizeAhaMoment
