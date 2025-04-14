@@ -1,0 +1,132 @@
+@layer base {
+    :root {
+        /* Típusméretek */
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.125rem;
+        --font-size-xl: 1.25rem;
+        --font-size-2xl: 1.5rem;
+        --font-size-3xl: 1.875rem;
+        --font-size-4xl: 2.25rem;
+        --font-size-5xl: 3rem;
+        --font-size-6xl: 3.75rem;
+        --font-size-7xl: 4.5rem;
+        --font-size-8xl: 6rem;
+        --font-size-9xl: 8rem;
+
+        /* Sormagasságok */
+        --line-height-none: 1;
+        --line-height-tight: 1.25;
+        --line-height-snug: 1.375;
+        --line-height-normal: 1.5;
+        --line-height-relaxed: 1.625;
+        --line-height-loose: 2;
+
+        /* Betűvastagságok */
+        --font-weight-thin: 100;
+        --font-weight-extralight: 200;
+        --font-weight-light: 300;
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+        --font-weight-extrabold: 800;
+        --font-weight-black: 900;
+
+        /* Betűközök */
+        --letter-spacing-tighter: -0.05em;
+        --letter-spacing-tight: -0.025em;
+        --letter-spacing-normal: 0em;
+        --letter-spacing-wide: 0.025em;
+        --letter-spacing-wider: 0.05em;
+        --letter-spacing-widest: 0.1em;
+    }
+
+    /* Alap tipográfia stílusok */
+    body {
+        @apply font-sans text-base leading-normal text-gray-900;
+    }
+
+    /* Fejlécek */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-bold text-gray-900;
+    }
+
+    h1 {
+        @apply text-4xl md:text-5xl lg:text-6xl;
+    }
+
+    h2 {
+        @apply text-3xl md:text-4xl lg:text-5xl;
+    }
+
+    h3 {
+        @apply text-2xl md:text-3xl lg:text-4xl;
+    }
+
+    h4 {
+        @apply text-xl md:text-2xl lg:text-3xl;
+    }
+
+    h5 {
+        @apply text-lg md:text-xl lg:text-2xl;
+    }
+
+    h6 {
+        @apply text-base md:text-lg lg:text-xl;
+    }
+
+    /* Bekezdések */
+    p {
+        @apply text-base leading-relaxed text-gray-900;
+    }
+
+    /* Linkek */
+    a {
+        @apply text-primary-600 hover:text-primary-700 underline;
+    }
+
+    /* Listák */
+    ul,
+    ol {
+        @apply pl-6 my-4;
+    }
+
+    li {
+        @apply my-2;
+    }
+
+    /* Idézetek */
+    blockquote {
+        @apply pl-4 border-l-4 border-gray-200 italic text-gray-700;
+    }
+
+    /* Kód */
+    code {
+        @apply font-mono text-sm bg-gray-100 px-1 py-0.5 rounded;
+    }
+
+    pre {
+        @apply font-mono text-sm bg-gray-100 p-4 rounded overflow-x-auto;
+    }
+
+    /* Táblázatok */
+    table {
+        @apply w-full border-collapse;
+    }
+
+    th,
+    td {
+        @apply border border-gray-200 px-4 py-2;
+    }
+
+    th {
+        @apply bg-gray-50 font-semibold text-left;
+    }
+}
