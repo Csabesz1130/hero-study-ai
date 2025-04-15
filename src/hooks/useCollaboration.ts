@@ -1,19 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CollaborationSession, ChatMessage, SharedResource, CollaborationSettings } from '@/types/collaboration';
+import { CollaborationSession, ChatMessage, SharedResource, CollaborationSettings, Achievement } from '@/types/collaboration';
 import { useSession } from 'next-auth/react';
 import { useResourceCache } from './useResourceCache';
+import { useSpacedRepetition } from './useSpacedRepetition';
 
 export const useCollaboration = (sessionId: string) => {
     const { data: userSession } = useSession();
     const { getResource, cacheResource } = useResourceCache();
+    const { scheduleReview } = useSpacedRepetition();
 
     const [collaborationSession, setCollaborationSession] = useState<CollaborationSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const [achievements, setAchievements] = useState<Achievement[]>([]);
+    const [notifications, setNotifications] = useState<{ id: string; type: string; message: string }[]>([]);
 
     const chatRef = useRef<HTMLDivElement>(null);
     const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
     const animationRefs = useRef<Map<string, Animation>>(new Map());
+    const wsRef = useRef<WebSocket | null>(null);
 
     const cleanupResources = useCallback(() => {
         // Hangfájlok felszabadítása
@@ -50,10 +55,78 @@ export const useCollaboration = (sessionId: string) => {
         }
     }, [sessionId, cacheResource]);
 
-    const sendMessage = useCallback(async (content: string, type: ChatMessage['type'] = 'text', metadata?: ChatMessage['metadata']) => {
-        if (!userSession?.user) return;
+    const handleAchievement = useCallback((achievement: Achievement) => {
+        setAchievements(prev => [...prev, achievement]);
+        if (collaborationSession?.settings.notificationPreferences.onAchievement) {
+            setNotifications(prev => [...prev, {
+                id: achievement.id,
+                type: 'achievement',
+                message: `Új eredmény: ${achievement.title}`
+            }]);
+        }
+    }, [collaborationSession?.settings.notificationPreferences.onAchievement]);
+
+    const checkMilestones = useCallback(() => {
+        if (!collaborationSession || !userSession?.user) return;
+
+        const userProgress = collaborationSession.progress.individualProgress[userSession.user.id];
+        const milestones = collaborationSession.progress.groupProgress.milestones;
+
+        milestones.forEach(milestone => {
+            if (!milestone.completed && userProgress.completedSteps >= milestone.requirements) {
+                updateProgress({
+                    groupProgress: {
+                        ...collaborationSession.progress.groupProgress,
+                        milestones: milestones.map(m =>
+                            m.id === milestone.id
+                                ? { ...m, completed: true, completedAt: new Date() }
+                                : m
+                        )
+                    }
+                });
+
+                if (collaborationSession.settings.notificationPreferences.onMilestone) {
+                    setNotifications(prev => [...prev, {
+                        id: milestone.id,
+                        type: 'milestone',
+                        message: `Mérföldkő elérve: ${milestone.title}`
+                    }]);
+                }
+            }
+        });
+    }, [collaborationSession, userSession?.user, updateProgress]);
+
+    const handleModeration = useCallback(async (content: string): Promise<boolean> => {
+        if (!collaborationSession?.settings.moderationSettings.enableWordFilter) return true;
 
         try {
+            const response = await fetch('/api/moderation/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+
+            if (!response.ok) throw new Error('Moderation check failed');
+
+            const { isAllowed } = await response.json();
+            return isAllowed;
+        } catch (err) {
+            console.error('Moderation error:', err);
+            return collaborationSession?.settings.moderationSettings.autoModerate ?? false;
+        }
+    }, [collaborationSession?.settings.moderationSettings]);
+
+    const sendMessage = useCallback(async (content: string, type: ChatMessage['type'] = 'text', metadata?: ChatMessage['metadata']) => {
+        if (!userSession?.user || !collaborationSession) return;
+
+        try {
+            // Moderáció ellenőrzése
+            const isAllowed = await handleModeration(content);
+            if (!isAllowed) {
+                setError(new Error('Az üzenet nem felel meg a moderációs szabályoknak'));
+                return;
+            }
+
             const response = await fetch(`/api/collaboration/${sessionId}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -68,23 +141,42 @@ export const useCollaboration = (sessionId: string) => {
                 chatMessages: [...prev.chatMessages, newMessage]
             } : null);
 
-            // Automatikus görgetés az új üzenethez
+            // Gamification pontok hozzáadása
+            if (collaborationSession.settings.gamificationSettings.enablePoints) {
+                const points = 10 * collaborationSession.settings.gamificationSettings.pointsMultiplier;
+                updateProgress({
+                    individualProgress: {
+                        [userSession.user.id]: {
+                            ...collaborationSession.progress.individualProgress[userSession.user.id],
+                            contributions: collaborationSession.progress.individualProgress[userSession.user.id].contributions + points
+                        }
+                    }
+                });
+            }
+
             if (chatRef.current) {
                 chatRef.current.scrollTop = chatRef.current.scrollHeight;
             }
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Failed to send message'));
         }
-    }, [sessionId, userSession]);
+    }, [sessionId, userSession, collaborationSession, handleModeration, updateProgress]);
 
-    const shareResource = useCallback(async (resourceId: string, type: SharedResource['type'], description?: string) => {
-        if (!userSession?.user) return;
+    const shareResource = useCallback(async (resourceId: string, type: SharedResource['type'], description?: string, visibility: SharedResource['visibility'] = 'all', metadata?: SharedResource['metadata']) => {
+        if (!userSession?.user || !collaborationSession) return;
 
         try {
             const response = await fetch(`/api/collaboration/${sessionId}/resources`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resourceId, type, description })
+                body: JSON.stringify({
+                    resourceId,
+                    type,
+                    description,
+                    visibility,
+                    metadata,
+                    visibleTo: visibility === 'specific_users' ? metadata?.visibleTo : undefined
+                })
             });
 
             if (!response.ok) throw new Error('Failed to share resource');
@@ -95,12 +187,32 @@ export const useCollaboration = (sessionId: string) => {
                 sharedResources: [...prev.sharedResources, newResource]
             } : null);
 
-            // Gyorsítótárazás az új erőforráshoz
+            // Gamification pontok hozzáadása
+            if (collaborationSession.settings.gamificationSettings.enablePoints) {
+                const points = 20 * collaborationSession.settings.gamificationSettings.pointsMultiplier;
+                updateProgress({
+                    individualProgress: {
+                        [userSession.user.id]: {
+                            ...collaborationSession.progress.individualProgress[userSession.user.id],
+                            contributions: collaborationSession.progress.individualProgress[userSession.user.id].contributions + points
+                        }
+                    }
+                });
+            }
+
             cacheResource(resourceId, newResource);
+
+            // Ismétlés ütemezése, ha engedélyezve van
+            if (collaborationSession.settings.learningSettings.enableSpacedRepetition) {
+                scheduleReview(resourceId, {
+                    initialDifficulty: metadata?.difficulty || 'intermediate',
+                    type: type
+                });
+            }
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Failed to share resource'));
         }
-    }, [sessionId, userSession, cacheResource]);
+    }, [sessionId, userSession, collaborationSession, cacheResource, scheduleReview]);
 
     const updateProgress = useCallback(async (progress: Partial<CollaborationSession['progress']>) => {
         if (!userSession?.user) return;
@@ -127,22 +239,35 @@ export const useCollaboration = (sessionId: string) => {
     useEffect(() => {
         fetchSession();
 
-        // WebSocket kapcsolat a valós idejű frissítésekhez
-        const ws = new WebSocket(`ws://${window.location.host}/api/collaboration/${sessionId}/ws`);
+        wsRef.current = new WebSocket(`ws://${window.location.host}/api/collaboration/${sessionId}/ws`);
 
-        ws.onmessage = (event) => {
+        wsRef.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            setCollaborationSession(prev => prev ? {
-                ...prev,
-                ...data
-            } : null);
+
+            if (data.type === 'achievement') {
+                handleAchievement(data.achievement);
+            } else if (data.type === 'session_update') {
+                setCollaborationSession(prev => prev ? {
+                    ...prev,
+                    ...data.session
+                } : null);
+            }
         };
+
+        const checkAchievementsInterval = setInterval(() => {
+            if (collaborationSession?.settings.gamificationSettings.enableAchievements) {
+                checkMilestones();
+            }
+        }, 60000); // Percenként ellenőrzi a mérföldköveket
 
         return () => {
-            ws.close();
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+            clearInterval(checkAchievementsInterval);
             cleanupResources();
         };
-    }, [sessionId, fetchSession, cleanupResources]);
+    }, [sessionId, fetchSession, cleanupResources, handleAchievement, checkMilestones, collaborationSession?.settings.gamificationSettings.enableAchievements]);
 
     return {
         collaborationSession,
@@ -152,6 +277,9 @@ export const useCollaboration = (sessionId: string) => {
         sendMessage,
         shareResource,
         updateProgress,
-        cleanupResources
+        cleanupResources,
+        achievements,
+        notifications,
+        handleModeration
     };
 }; 
