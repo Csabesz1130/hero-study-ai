@@ -99,19 +99,19 @@ export const learningStyles = pgTable('learning_styles', {
 }));
 
 export const knowledgeRetention = pgTable('knowledge_retention', {
-    id: text('id').primaryKey().notNull(),
-    userId: text('user_id').notNull().references(() => users.id),
-    topic: text('topic').notNull(),
-    score: real('score').default(0).notNull(),
-    predictedScore: real('predicted_score').default(0).notNull(),
-    lastAssessed: timestamp('last_assessed').defaultNow().notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull()
-}, (table) => ({
-    userTopicIdx: uniqueIndex('user_topic_idx').on(table.userId, table.topic),
-    userIdx: index('user_idx').on(table.userId),
-    topicIdx: index('topic_idx').on(table.topic)
-}));
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    resourceId: text('resource_id').notNull(),
+    easeFactor: real('ease_factor').notNull().default(2.5),
+    interval: integer('interval').notNull().default(0),
+    repetitions: integer('repetitions').notNull().default(0),
+    dueDate: timestamp('due_date').notNull(),
+    lastReviewedAt: timestamp('last_reviewed_at'),
+    type: text('type', { enum: ['transformation', 'note', 'bookmark', 'highlight', 'question', 'solution', 'example'] }).notNull(),
+    difficulty: text('difficulty', { enum: ['beginner', 'intermediate', 'advanced'] }).notNull().default('intermediate'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
 
 export const cognitiveLoads = pgTable('cognitive_loads', {
     id: text('id').primaryKey().notNull(),
