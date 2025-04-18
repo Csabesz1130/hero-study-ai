@@ -1,0 +1,234 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.title {
+    text-align: center;
+    color: #2d3748;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: #edf2f7;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.tab:hover {
+    background-color: #e2e8f0;
+}
+
+.tab.active {
+    background-color: #4299e1;
+    color: white;
+}
+
+.content {
+    background-color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.section {
+    min-height: 400px;
+}
+
+.section h2 {
+    color: #2d3748;
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+}
+
+/* Spaced Repetition Styles */
+.card {
+    background-color: #f7fafc;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.question {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2d3748;
+}
+
+.answer {
+    font-size: 1.1rem;
+    color: #4a5568;
+    margin-bottom: 1.5rem;
+}
+
+.difficultyButtons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.difficultyButton {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 2px solid #cbd5e0;
+    background-color: white;
+    color: #4a5568;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.difficultyButton:hover {
+    background-color: #edf2f7;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    color: #4a5568;
+    font-size: 0.9rem;
+}
+
+/* Problem Solving Styles */
+.viewpointSelector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.viewpointSelector button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: #edf2f7;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.viewpointSelector button:hover {
+    background-color: #e2e8f0;
+}
+
+.step {
+    background-color: #f7fafc;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.step h3 {
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.step p {
+    color: #4a5568;
+    margin-bottom: 1rem;
+}
+
+/* Collaboration Styles */
+.chat {
+    height: 300px;
+    overflow-y: auto;
+    background-color: #f7fafc;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.message {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.resources {
+    background-color: #f7fafc;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.resource {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Transformation Styles */
+.transformControls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.transformControls button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: #4299e1;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.transformControls button:hover {
+    background-color: #3182ce;
+}
+
+.transformStep {
+    background-color: #f7fafc;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .tabs {
+        flex-direction: column;
+    }
+
+    .tab {
+        width: 100%;
+    }
+
+    .difficultyButtons {
+        flex-wrap: wrap;
+    }
+
+    .stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
