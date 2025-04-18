@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { UserPreferences } from '@/types/microLearning';
+import { ReviewSchedule } from '@/types/spacedRepetition';
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,22 +12,47 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-class NotificationService {
+export interface NotificationOptions {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    data?: any;
+    requireInteraction?: boolean;
+    silent?: boolean;
+}
+
+export class NotificationService {
+    private static instance: NotificationService;
     private messaging;
     private token: string | null = null;
+    private permission: NotificationPermission = 'default';
+    private notificationTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
-    constructor() {
+    private constructor() {
         const app = initializeApp(firebaseConfig);
         this.messaging = getMessaging(app);
+        this.requestPermission();
     }
 
-    public async requestPermission(): Promise<boolean> {
+    public static getInstance(): NotificationService {
+        if (!NotificationService.instance) {
+            NotificationService.instance = new NotificationService();
+        }
+        return NotificationService.instance;
+    }
+
+    private async requestPermission(): Promise<void> {
+        if (!('Notification' in window)) {
+            console.warn('A böngésző nem támogatja az értesítéseket');
+            return;
+        }
+
         try {
-            const permission = await Notification.requestPermission();
-            return permission === 'granted';
+            this.permission = await Notification.requestPermission();
         } catch (error) {
-            console.error('Értesítési engedély kérése sikertelen:', error);
-            return false;
+            console.error('Hiba történt az értesítési engedély kérése során:', error);
         }
     }
 
@@ -139,6 +165,104 @@ class NotificationService {
             console.error('Leiratkozás sikertelen:', error);
         }
     }
+
+    public async scheduleReviewNotifications(
+        reviews: ReviewSchedule[],
+        options: Partial<NotificationOptions> = {}
+    ): Promise<void> {
+        // Töröljük a meglévő időzítéseket
+        this.clearAllNotifications();
+
+        const defaultOptions: NotificationOptions = {
+            title: 'Ismétlés időpontja',
+            body: 'Ideje átnézni a tanulási anyagokat!',
+            icon: '/icons/notification-icon.png',
+            badge: '/icons/badge-icon.png',
+            tag: 'review-notification',
+            requireInteraction: true,
+            silent: false
+        };
+
+        const finalOptions = { ...defaultOptions, ...options };
+
+        reviews.forEach(review => {
+            const timeUntilReview = review.scheduledDate.getTime() - Date.now();
+
+            if (timeUntilReview > 0) {
+                const timeout = setTimeout(() => {
+                    this.showNotification(finalOptions);
+                }, timeUntilReview);
+
+                this.notificationTimeouts.set(review.id, timeout);
+            }
+        });
+    }
+
+    public clearAllNotifications(): void {
+        this.notificationTimeouts.forEach(timeout => clearTimeout(timeout));
+        this.notificationTimeouts.clear();
+    }
+
+    public clearNotification(reviewId: string): void {
+        const timeout = this.notificationTimeouts.get(reviewId);
+        if (timeout) {
+            clearTimeout(timeout);
+            this.notificationTimeouts.delete(reviewId);
+        }
+    }
+
+    private showNotification(options: NotificationOptions): void {
+        if (this.permission !== 'granted') {
+            console.warn('Nincs engedély az értesítések megjelenítéséhez');
+            return;
+        }
+
+        if (!('serviceWorker' in navigator)) {
+            // Egyszerű böngésző értesítés
+            new Notification(options.title, {
+                body: options.body,
+                icon: options.icon,
+                tag: options.tag,
+                requireInteraction: options.requireInteraction,
+                silent: options.silent
+            });
+        } else {
+            // Service Worker alapú értesítés
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(options.title, {
+                    body: options.body,
+                    icon: options.icon,
+                    badge: options.badge,
+                    tag: options.tag,
+                    data: options.data,
+                    requireInteraction: options.requireInteraction,
+                    silent: options.silent
+                });
+            });
+        }
+    }
+
+    public async registerPushNotifications(
+        serviceWorkerRegistration: ServiceWorkerRegistration
+    ): Promise<void> {
+        try {
+            const subscription = await serviceWorkerRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            });
+
+            // Küldjük el a subscription adatokat a szervernek
+            await fetch('/api/push-subscription', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(subscription)
+            });
+        } catch (error) {
+            console.error('Hiba történt a push értesítések regisztrálása során:', error);
+        }
+    }
 }
 
-export const notificationService = new NotificationService(); 
+export const notificationService = NotificationService.getInstance(); 
