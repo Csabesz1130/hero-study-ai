@@ -23,3 +23,6 @@ export default async function handler(
         console.error('Error suggesting next steps:', error);
         res.status(500).json({
             error: 'Internal server error',
+        });
+    }
+}
