@@ -7,7 +7,11 @@ const nextConfig = {
             net: false,
             tls: false,
         };
-
+        // Az undici csomag kihagyása a kliens bundlingből
+        config.resolve.alias = {
+            ...(config.resolve.alias || {}),
+            undici: false,
+        };
         return config;
     },
     transpilePackages: ['undici'],
