@@ -1,31 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { getClientAuth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, updateProfile, Auth } from "firebase/auth";
 import toast from "react-hot-toast";
 
 export default function SignUp() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [firebaseAuth, setFirebaseAuth] = useState<Auth | null>(null);
+
     const [formData, setFormData] = useState({
         email: "",
         password: "",
         displayName: "",
     });
 
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setFirebaseAuth(getClientAuth());
+        }
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
+        if (!firebaseAuth) {
+            toast.error("Azonosítási szolgáltatás nem elérhető.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const userCredential = await createUserWithEmailAndPassword(
-                auth,
+                firebaseAuth,
                 formData.email,
                 formData.password
             );
@@ -37,7 +51,15 @@ export default function SignUp() {
             toast.success("Sikeres regisztráció!");
             router.push("/dashboard");
         } catch (error: any) {
-            toast.error(error.message);
+            let errorMessage = "Regisztrációs hiba történt.";
+            if (error.code === "auth/email-already-in-use") {
+                errorMessage = "Ez az e-mail cím már foglalt.";
+            } else if (error.code === "auth/weak-password") {
+                errorMessage = "A jelszó túl gyenge. Minimum 6 karakter szükséges.";
+            } else if (error.code) {
+                errorMessage = error.message;
+            }
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -101,7 +123,7 @@ export default function SignUp() {
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full" disabled={isLoading || !firebaseAuth}>
                             {isLoading ? "Regisztráció..." : "Regisztráció"}
                         </Button>
                         <p className="text-sm text-gray-400 text-center">
