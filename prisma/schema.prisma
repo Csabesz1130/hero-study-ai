@@ -25,6 +25,7 @@ model User {
   knowledgeRetention KnowledgeRetention[]
   cognitiveLoads  CognitiveLoad[]
   abTestAssignments ABTestAssignment[]
+  contributions     Contribution[]
 }
 
 model Session {
@@ -162,6 +163,7 @@ model ABTest {
   startDate     DateTime
   endDate       DateTime?
   status        String    @default("active")
+  assignments   ABTestAssignment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
