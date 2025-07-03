@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    transpilePackages: ['undici'],
     webpack: (config, { isServer }) => {
         if (!isServer) {
             config.resolve.fallback = {
