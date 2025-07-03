@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { getClientAuth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -16,6 +16,7 @@ export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const auth = getClientAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUser({
@@ -37,6 +38,7 @@ export default function Dashboard() {
 
     const handleSignOut = async () => {
         try {
+            const auth = getClientAuth();
             await signOut(auth);
             toast.success("Sikeres kijelentkezés!");
             router.push("/");

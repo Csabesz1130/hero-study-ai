@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { toast } from "react-hot-toast";
-import { auth } from "@/lib/firebase";
+import { getClientAuth, getClientFirestore } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 
 export default function QuizDashboardPage() {
@@ -18,6 +17,7 @@ export default function QuizDashboardPage() {
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
+        const auth = getClientAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUserId(user.uid);
@@ -33,6 +33,7 @@ export default function QuizDashboardPage() {
     const loadQuizzes = async (uid: string) => {
         try {
             setLoading(true);
+            const db = getClientFirestore();
             const quizzesRef = collection(db, "quizzes");
             const q = query(
                 quizzesRef,

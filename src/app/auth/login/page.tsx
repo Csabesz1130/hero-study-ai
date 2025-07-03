@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { auth } from "@/lib/firebase";
+import { getClientAuth } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import toast from "react-hot-toast";
 
@@ -23,6 +23,7 @@ export default function Login() {
         setIsLoading(true);
 
         try {
+            const auth = getClientAuth();
             await signInWithEmailAndPassword(
                 auth,
                 formData.email,

@@ -4,8 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { auth } from "@/lib/firebase";
-import { db } from "@/lib/firebase";
+import { getClientAuth, getClientFirestore } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import AdaptiveQuiz from "@/components/quiz/AdaptiveQuiz";
@@ -19,6 +18,7 @@ export default function QuizPage({ params }: { params: { id: string } }) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const auth = getClientAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUserId(user.uid);
@@ -34,6 +34,7 @@ export default function QuizPage({ params }: { params: { id: string } }) {
     const loadQuiz = async (quizId: string) => {
         try {
             setLoading(true);
+            const db = getClientFirestore();
             const quizDoc = await getDoc(doc(db, "quizzes", quizId));
 
             if (!quizDoc.exists()) {

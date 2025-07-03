@@ -1,16 +1,7 @@
-import { initializeApp } from 'firebase/app';
+import { app } from '@/lib/firebase-app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { UserPreferences } from '@/types/microLearning';
 import { ReviewSchedule } from '@/types/spacedRepetition';
-
-const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
 
 export interface NotificationOptions {
     title: string;
@@ -31,7 +22,6 @@ export class NotificationService {
     private notificationTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
     private constructor() {
-        const app = initializeApp(firebaseConfig);
         this.messaging = getMessaging(app);
         this.requestPermission();
     }

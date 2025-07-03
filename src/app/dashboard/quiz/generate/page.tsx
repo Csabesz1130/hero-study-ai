@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { auth } from "@/lib/firebase";
+import { getClientAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import QuizGenerator from "@/components/quiz/QuizGenerator";
 
@@ -14,6 +14,7 @@ export default function GenerateQuizPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const auth = getClientAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUserId(user.uid);

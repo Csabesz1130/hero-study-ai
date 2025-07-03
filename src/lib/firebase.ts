@@ -25,4 +25,8 @@ export const getClientFirestore = (): Firestore => {
     return dbInstance;
 };
 
+// Kliens oldali exportok - csak böngészőben használható
+export const auth = typeof window !== "undefined" ? getClientAuth() : null;
+export const db = typeof window !== "undefined" ? getClientFirestore() : null;
+
 export { app }; 
