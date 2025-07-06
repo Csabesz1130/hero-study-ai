@@ -1,0 +1,369 @@
+version: '3.8'
+
+networks:
+  copilot_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  elasticsearch_data:
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hero_study_copilot
+      POSTGRES_USER: ${POSTGRES_USER:-copilot_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-copilot_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-copilot_user} -d hero_study_copilot"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_password123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Elasticsearch for Search & Analytics
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    restart: unless-stopped
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=copilot-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-copilot_rabbit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbit_password}
+      RABBITMQ_DEFAULT_VHOST: copilot_vhost
+    volumes:
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./config/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Main Application
+  copilot-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      args:
+        NODE_ENV: production
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-copilot_user}:${POSTGRES_PASSWORD:-copilot_password}@postgres:5432/hero_study_copilot
+      
+      # Redis
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-redis_password}@redis:6379
+      
+      # MinIO
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio_password123}
+      MINIO_BUCKET: copilot-files
+      
+      # Elasticsearch
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      
+      # RabbitMQ
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-copilot_rabbit}:${RABBITMQ_PASSWORD:-rabbit_password}@rabbitmq:5672/copilot_vhost
+      
+      # Application
+      NODE_ENV: production
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      
+      # JWT Security
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      
+      # Email (Optional)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      
+      # Monitoring
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - copilot_network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Load Balancer & Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/copilot.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./static:/var/www/static:ro
+    depends_on:
+      - copilot-app
+    networks:
+      - copilot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - copilot_network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin_password}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - copilot_network
+
+  # File Upload Service (Separate microservice)
+  file-service:
+    build:
+      context: ./services/file-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio_password123}
+      ALLOWED_FILE_TYPES: "jpg,jpeg,png,gif,pdf,doc,docx,txt,zip,rar"
+      MAX_FILE_SIZE: "50MB"
+      NODE_ENV: production
+    ports:
+      - "${FILE_SERVICE_PORT:-3002}:3000"
+    depends_on:
+      - minio
+    networks:
+      - copilot_network
+
+  # WebSocket Service (Separate for scaling)
+  websocket-service:
+    build:
+      context: ./services/websocket-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-redis_password}@redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-copilot_user}:${POSTGRES_PASSWORD:-copilot_password}@postgres:5432/hero_study_copilot
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      NODE_ENV: production
+    ports:
+      - "${WEBSOCKET_PORT:-3003}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - copilot_network
+
+  # Background Job Worker
+  worker-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-copilot_user}:${POSTGRES_PASSWORD:-copilot_password}@postgres:5432/hero_study_copilot
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-redis_password}@redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-copilot_rabbit}:${RABBITMQ_PASSWORD:-rabbit_password}@rabbitmq:5672/copilot_vhost
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - copilot_network
+    deploy:
+      replicas: 2  # Scale workers
+
+  # Database Backup Service
+  db-backup:
+    image: postgres:15-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-copilot_password}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    command: /bin/sh -c "chmod +x /backup.sh && /backup.sh"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - copilot_network
+    profiles:
+      - backup
+
+  # Log Aggregation (ELK Stack - Optional)
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    restart: unless-stopped
+    volumes:
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logs:/logs:ro
+    ports:
+      - "${LOGSTASH_PORT:-5044}:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - copilot_network
+    profiles:
+      - logging
+
+  # Health Check Service
+  healthcheck:
+    build:
+      context: ./services/healthcheck
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVICES_TO_CHECK: "copilot-app,postgres,redis,minio,elasticsearch,rabbitmq"
+      CHECK_INTERVAL: 30
+    ports:
+      - "${HEALTHCHECK_PORT:-8080}:8080"
+    networks:
+      - copilot_network
+    depends_on:
+      - copilot-app

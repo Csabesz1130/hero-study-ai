@@ -76,10 +76,10 @@ export const challenges = pgTable('challenges', {
     certificates: boolean
     mentorship: boolean
   }>(),
-  participantCount: integer('participant_count').default(0),
-  teamCount: integer('team_count').default(0),
-  submissionCount: integer('submission_count').default(0),
-  viewCount: integer('view_count').default(0),
+  participantCount: integer('participant_count').default(0).notNull(),
+  teamCount: integer('team_count').default(0).notNull(),
+  submissionCount: integer('submission_count').default(0).notNull(),
+  viewCount: integer('view_count').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
@@ -90,7 +90,7 @@ export const challengeParticipants = pgTable('challenge_participants', {
   challengeId: uuid('challenge_id').notNull().references(() => challenges.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
-  isActive: boolean('is_active').default(true)
+  isActive: boolean('is_active').default(true).notNull()
 })
 
 // Teams tábla
@@ -109,8 +109,8 @@ export const teams = pgTable('teams', {
     workingHours: string[]
     timezone: string
   }>(),
-  currentSize: integer('current_size').default(1),
-  maxSize: integer('max_size').default(5),
+  currentSize: integer('current_size').default(1).notNull(),
+  maxSize: integer('max_size').default(5).notNull(),
   inviteCode: varchar('invite_code', { length: 32 }).unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -124,20 +124,20 @@ export const teamMembers = pgTable('team_members', {
   role: varchar('role', { length: 50 }).default('member').notNull(), // leader, member, mentor
   skills: jsonb('skills').$type<string[]>(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
-  isActive: boolean('is_active').default(true)
+  isActive: boolean('is_active').default(true).notNull()
 })
 
-// User Skills tábla
+// User Skills tábla - FIXED types
 export const userSkills = pgTable('user_skills', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   skillName: varchar('skill_name', { length: 100 }).notNull(),
-  category: varchar('category', { length: 50 }), // technical, soft, domain
+  category: varchar('category', { length: 50 }).default('technical'), // technical, soft, domain
   proficiencyLevel: integer('proficiency_level').notNull(), // 1-10
   yearsOfExperience: decimal('years_of_experience', { precision: 3, scale: 1 }),
-  isVerified: boolean('is_verified').default(false),
+  isVerified: boolean('is_verified').default(false).notNull(),
   verifiedBy: uuid('verified_by').references(() => users.id),
-  endorsements: integer('endorsements').default(0),
+  endorsements: integer('endorsements').default(0).notNull(),
   lastUsed: timestamp('last_used'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -183,23 +183,23 @@ export const evaluations = pgTable('evaluations', {
   score: decimal('score', { precision: 4, scale: 2 }).notNull(),
   maxScore: decimal('max_score', { precision: 4, scale: 2 }).notNull(),
   feedback: text('feedback'),
-  isPublic: boolean('is_public').default(false),
+  isPublic: boolean('is_public').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
 
-// Reputation tábla
+// Reputation tábla - FIXED nullable fields
 export const reputation = pgTable('reputation', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   totalScore: integer('total_score').default(0).notNull(),
-  challengesCompleted: integer('challenges_completed').default(0),
-  challengesWon: integer('challenges_won').default(0),
-  teamsLed: integer('teams_led').default(0),
-  contributionsCount: integer('contributions_count').default(0),
-  mentorshipSessions: integer('mentorship_sessions').default(0),
-  peerReviewsGiven: integer('peer_reviews_given').default(0),
-  peerReviewsReceived: integer('peer_reviews_received').default(0),
+  challengesCompleted: integer('challenges_completed').default(0).notNull(),
+  challengesWon: integer('challenges_won').default(0).notNull(),
+  teamsLed: integer('teams_led').default(0).notNull(),
+  contributionsCount: integer('contributions_count').default(0).notNull(),
+  mentorshipSessions: integer('mentorship_sessions').default(0).notNull(),
+  peerReviewsGiven: integer('peer_reviews_given').default(0).notNull(),
+  peerReviewsReceived: integer('peer_reviews_received').default(0).notNull(),
   averageRating: decimal('average_rating', { precision: 3, scale: 2 }),
   badges: jsonb('badges').$type<{
     id: string
@@ -207,25 +207,25 @@ export const reputation = pgTable('reputation', {
     description: string
     iconUrl: string
     earnedAt: string
-  }[]>(),
+  }[]>().default([]),
   achievements: jsonb('achievements').$type<{
     id: string
     name: string
     description: string
     category: string
     unlockedAt: string
-  }[]>(),
+  }[]>().default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
 
-// Workspaces tábla (MongoDB-ben lesz a dokumentumok tartalma)
+// Workspaces tábla - FIXED settings structure
 export const workspaces = pgTable('workspaces', {
   id: uuid('id').primaryKey().defaultRandom(),
   teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
-  isActive: boolean('is_active').default(true),
+  isActive: boolean('is_active').default(true).notNull(),
   settings: jsonb('settings').$type<{
     permissions: {
       canRead: string[] // user IDs
@@ -238,7 +238,10 @@ export const workspaces = pgTable('workspaces', {
       fileSharing: boolean
       taskManagement: boolean
     }
-  }>(),
+  }>().default({
+    permissions: { canRead: [], canWrite: [], canAdmin: [] },
+    features: { realTimeEditing: true, videoCall: true, fileSharing: true, taskManagement: true }
+  }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
@@ -250,7 +253,7 @@ export const activityLogs = pgTable('activity_logs', {
   action: varchar('action', { length: 100 }).notNull(), // join_challenge, create_team, submit_solution
   entityType: varchar('entity_type', { length: 50 }).notNull(), // challenge, team, submission
   entityId: uuid('entity_id').notNull(),
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -274,6 +277,9 @@ export const selectUserSkillSchema = createSelectSchema(userSkills)
 
 export const insertReputationSchema = createInsertSchema(reputation)
 export const selectReputationSchema = createSelectSchema(reputation)
+
+export const insertWorkspaceSchema = createInsertSchema(workspaces)
+export const selectWorkspaceSchema = createSelectSchema(workspaces)
 
 // Types
 export type User = typeof users.$inferSelect
