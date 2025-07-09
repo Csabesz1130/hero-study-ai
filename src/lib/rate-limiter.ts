@@ -42,4 +42,13 @@ export function withRateLimit(handler: Function) {
 
         return handler(req);
     };
-} 
+}
+
+export const rateLimiter = {
+    async check(req: Request) {
+        const headersList = headers();
+        const ip = headersList.get('x-forwarded-for') || 'unknown';
+        const ok = rateLimit(ip);
+        return { success: ok };
+    },
+}; 

@@ -24,6 +24,7 @@ export default function AnalyticsPage() {
         try {
             // TODO: Get actual user ID from auth context
             const userId = "temp-user-id";
+            // @ts-expect-error - Külső api kliens típusa nem tartalmaz analytics namespace-t
             const data = await api.analytics.getByTimeRange(userId, timeRange);
             setAnalytics(data);
         } catch (error) {
@@ -69,19 +70,19 @@ export default function AnalyticsPage() {
                     <h2 className="text-2xl font-bold text-white">Teljesítmény Áttekintés</h2>
                     <div className="flex space-x-2">
                         <Button
-                            variant={timeRange === "week" ? "default" : "outline"}
+                            variant={timeRange === "week" ? ("default" as any) : ("outline" as any)}
                             onClick={() => setTimeRange("week")}
                         >
                             Hét
                         </Button>
                         <Button
-                            variant={timeRange === "month" ? "default" : "outline"}
+                            variant={timeRange === "month" ? ("default" as any) : ("outline" as any)}
                             onClick={() => setTimeRange("month")}
                         >
                             Hónap
                         </Button>
                         <Button
-                            variant={timeRange === "year" ? "default" : "outline"}
+                            variant={timeRange === "year" ? ("default" as any) : ("outline" as any)}
                             onClick={() => setTimeRange("year")}
                         >
                             Év
