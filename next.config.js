@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     transpilePackages: ['undici'],
+    // SWC letiltása Windows 32-bit kompatibilitás miatt
+    swcMinify: false,
     webpack: (config, { isServer }) => {
         if (!isServer) {
             // Fallback-ek a Node.js modulokhoz
