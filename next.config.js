@@ -22,12 +22,19 @@ const nextConfig = {
                 path: false,
             };
 
-            // Undici alias a böngészőben
-            config.resolve.alias = {
-                ...config.resolve.alias,
-                undici: false,
-            };
+            // Handle undici as external on client side
+            config.externals = config.externals || [];
+            config.externals.push('undici');
         }
+
+        // Add webpack rule to handle undici package
+        config.module.rules.push({
+            test: /node_modules\/undici/,
+            use: {
+                loader: 'null-loader'
+            }
+        });
+
         return config;
     },
     // Firebase kompatibilitás
